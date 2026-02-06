@@ -45,6 +45,69 @@
 - `config.yaml`, `metadata.yaml`, `crossref.yaml` - リポジトリ固有設定
 - `Chapter01.md` 以降 - 本文
 
+---
+
+## カバー画像管理
+
+### ファイル構成
+
+各リポジトリの `image/Cover/` ディレクトリに以下のファイルを配置：
+
+| ファイル | 用途 | 命名規則 |
+|----------|------|----------|
+| **電子版PNG** | PDF/EPUB表紙 | `電子版表紙_300dpi_2480x3508.png` |
+| **印刷用AI** | 入稿データ | `印刷用：<書籍名><バージョン>_<日付>.ai` |
+
+### 電子版PNG仕様
+
+| 項目 | 値 |
+|------|-----|
+| 解像度 | 300dpi |
+| サイズ | 2480 x 3508 px（A4相当） |
+| 形式 | PNG (8-bit RGB) |
+| ファイル名 | **固定**: `電子版表紙_300dpi_2480x3508.png` |
+
+ファイル名に解像度とサイズを含めることで、仕様が一目で分かるようにする。
+
+### 参照箇所
+
+カバー画像は以下の2箇所で参照される：
+
+1. **template.tex** (PDF用)
+   ```latex
+   \ThisCenterWallPaper{1}{image/Cover/電子版表紙_300dpi_2480x3508.png}
+   ```
+
+2. **pandoc.yaml** (EPUB用)
+   ```yaml
+   --epub-cover-image=image/Cover/電子版表紙_300dpi_2480x3508.png
+   ```
+
+### 現在の状況 (2026-02-06)
+
+| リポジトリ | PNG | 状態 |
+|------------|-----|------|
+| admin-text | `電子版表紙_300dpi_2480x3508.png` | ✅ 準拠 |
+| linux-text | `cover.png` | ❌ 要リネーム |
+| ossdb-text | `電子版表紙_300dpi_2480x3508.png` | ✅ 準拠 |
+| server-text | `cover.png` | ❌ 要リネーム |
+
+### リネーム作業
+
+```bash
+# linux-text
+cd linux-text
+git mv image/Cover/cover.png "image/Cover/電子版表紙_300dpi_2480x3508.png"
+# template.tex と pandoc.yaml のパスも更新
+
+# server-text
+cd ../server-text
+git mv main/image/Cover/cover.png "main/image/Cover/電子版表紙_300dpi_2480x3508.png"
+# template.tex と pandoc.yaml のパスも更新
+```
+
+---
+
 ## 同期作業手順
 
 ### 1. 差分確認
@@ -144,3 +207,4 @@ diff -u ./tmp/default-latest.tex admin-text/template.tex | less
 |------|------|
 | 2026-02-05 | 初版作成 |
 | 2026-02-06 | 構成を「リポジトリ間同期」と「Pandoc upstream追従」に分離 |
+| 2026-02-06 | カバー画像管理セクション追加 |
