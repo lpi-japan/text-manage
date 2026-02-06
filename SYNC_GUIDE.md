@@ -62,12 +62,12 @@
 
 | 項目 | 値 |
 |------|-----|
-| 解像度 | 300dpi |
 | サイズ | 2480 x 3508 px（A4相当） |
 | 形式 | PNG (8-bit RGB) |
 | ファイル名 | **固定**: `電子版表紙_300dpi_2480x3508.png` |
 
 ファイル名に解像度とサイズを含めることで、仕様が一目で分かるようにする。
+DPIメタデータはPNG内に埋め込まなくてもよい（印刷時はAIファイルから出力するため）。
 
 ### 参照箇所
 
@@ -82,29 +82,6 @@
    ```yaml
    --epub-cover-image=image/Cover/電子版表紙_300dpi_2480x3508.png
    ```
-
-### 現在の状況 (2026-02-06)
-
-| リポジトリ | PNG | 状態 |
-|------------|-----|------|
-| admin-text | `電子版表紙_300dpi_2480x3508.png` | ✅ 準拠 |
-| linux-text | `cover.png` | ❌ 要リネーム |
-| ossdb-text | `電子版表紙_300dpi_2480x3508.png` | ✅ 準拠 |
-| server-text | `cover.png` | ❌ 要リネーム |
-
-### リネーム作業
-
-```bash
-# linux-text
-cd linux-text
-git mv image/Cover/cover.png "image/Cover/電子版表紙_300dpi_2480x3508.png"
-# template.tex と pandoc.yaml のパスも更新
-
-# server-text
-cd ../server-text
-git mv main/image/Cover/cover.png "main/image/Cover/電子版表紙_300dpi_2480x3508.png"
-# template.tex と pandoc.yaml のパスも更新
-```
 
 ---
 
