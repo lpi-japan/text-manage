@@ -110,6 +110,12 @@ generate_epub() {
 
     working_dir="${working_dir:-.}"
 
+    # working_dirがサブディレクトリの場合、共通ファイルへのパスを調整
+    local path_prefix=""
+    if [[ "$working_dir" != "." ]]; then
+        path_prefix="../"
+    fi
+
     echo "========================================="
     echo "Generating EPUB for $repo"
     echo "========================================="
@@ -128,10 +134,10 @@ generate_epub() {
             cat \$(ls -1 Chapter*.md | sort -V | tr '\n' ' ' | sed 's/ \$//') | sed 's/^####.*/#& {-}/' > guide.md
             /usr/bin/awk 'BEGIN{go=0;}{ if (go==1){print;} else {if(\$0 ~ /^#/) { go=1;print;}}}' guide.md | \
                 pandoc -t epub3 -F pandoc-crossref -o guide.epub -N \
-                -M 'crossrefYaml=crossref.yaml' \
-                --metadata-file=metadata.yaml \
+                -M crossrefYaml=${path_prefix}crossref.yaml \
+                --metadata-file=${path_prefix}metadata.yaml \
                 --epub-cover-image=$cover \
-                --css=epub.css
+                --css=${path_prefix}epub.css
         "
 
     cp "$repo_dir/$working_dir/guide.epub" "$output_dir/" 2>/dev/null || true
@@ -150,6 +156,7 @@ run_all() {
             *)
                 docker_build "$repo"
                 generate_pdf "$repo"
+                generate_epub "$repo"
                 ;;
         esac
     done
@@ -177,6 +184,7 @@ case "$MODE" in
     *)
         docker_build "$REPO_NAME"
         generate_pdf "$REPO_NAME"
+        generate_epub "$REPO_NAME"
         ;;
 esac
 
