@@ -19,18 +19,20 @@ REPO_NAME="${1:-}"
 MODE="${2:-full}"
 RESULTS_DIR="$SCRIPT_DIR/tmp/results"
 
-# リポジトリ設定 (working_dir, cover, template)
+# リポジトリ設定 (working_dir, template, repo_dir)
+# coverはpandoc.yamlから動的に取得
 declare -A REPO_CONFIGS=(
-    ["admin-text"]="working_dir=. cover=image/Cover/電子版表紙_300dpi_2480x3508.png"
-    ["linux-text"]="working_dir=. cover=image/Cover/cover.png"
-    ["ossdb-text"]="working_dir=. cover=image/Cover/電子版表紙_300dpi_2480x3508.png"
-    ["server-text"]="working_dir=main cover=image/Cover/cover.png template=../template.tex"
+    ["admin-text"]="working_dir=."
+    ["linux-text"]="working_dir=."
+    ["ossdb-text"]="working_dir=."
+    ["server-text"]="working_dir=main template=../template.tex"
+    ["server-text-ubuntu"]="working_dir=ubuntu template=../template.tex repo_dir=server-text"
 )
 
 usage() {
     echo "Usage: $0 <repository> [--build-only|--pdf-only|--epub-only]"
     echo ""
-    echo "Repositories: admin-text, linux-text, ossdb-text, server-text"
+    echo "Repositories: admin-text, linux-text, ossdb-text, server-text, server-text-ubuntu"
     echo ""
     echo "Options:"
     echo "  --build-only  Docker build only"
@@ -50,23 +52,33 @@ get_config() {
     echo "$config" | tr ' ' '\n' | grep "^${key}=" | cut -d= -f2
 }
 
+# pandoc.yamlから--epub-cover-image=の値を抽出
+get_cover_from_workflow() {
+    local repo_dir="$1"
+    grep -oP '(?<=--epub-cover-image=)[^ ]+' "$repo_dir/.github/workflows/pandoc.yaml" | head -1
+}
+
 docker_build() {
     local repo="$1"
-    local repo_dir="$SCRIPT_DIR/$repo"
+    local repo_actual=$(get_config "$repo" "repo_dir")
+    repo_actual="${repo_actual:-$repo}"
+    local repo_dir="$SCRIPT_DIR/$repo_actual"
 
     echo "========================================="
-    echo "Building Docker image for $repo"
+    echo "Building Docker image for $repo_actual"
     echo "========================================="
 
     cd "$repo_dir"
-    docker build -t "${repo}-test" .
+    docker build -t "${repo_actual}-test" .
 
-    echo "✓ Docker build successful: ${repo}-test"
+    echo "✓ Docker build successful: ${repo_actual}-test"
 }
 
 generate_pdf() {
     local repo="$1"
-    local repo_dir="$SCRIPT_DIR/$repo"
+    local repo_actual=$(get_config "$repo" "repo_dir")
+    repo_actual="${repo_actual:-$repo}"
+    local repo_dir="$SCRIPT_DIR/$repo_actual"
     local working_dir=$(get_config "$repo" "working_dir")
     local template=$(get_config "$repo" "template")
 
@@ -86,7 +98,7 @@ generate_pdf() {
         -v "$(pwd):/data" \
         -w "/data/$working_dir" \
         --entrypoint /bin/sh \
-        "${repo}-test" \
+        "${repo_actual}-test" \
         -c "
             chapters=\$(ls -1 Chapter*.md | grep -v 'Chapter00.md' | sort -V | tr '\n' ' ' | sed 's/ \$//')
             pandoc Chapter00.md -o preface.tex
@@ -104,11 +116,18 @@ generate_pdf() {
 
 generate_epub() {
     local repo="$1"
-    local repo_dir="$SCRIPT_DIR/$repo"
+    local repo_actual=$(get_config "$repo" "repo_dir")
+    repo_actual="${repo_actual:-$repo}"
+    local repo_dir="$SCRIPT_DIR/$repo_actual"
     local working_dir=$(get_config "$repo" "working_dir")
-    local cover=$(get_config "$repo" "cover")
+    local cover=$(get_cover_from_workflow "$repo_dir")
 
     working_dir="${working_dir:-.}"
+
+    if [[ -z "$cover" ]]; then
+        echo "Error: Could not find cover image in $repo_dir/.github/workflows/pandoc.yaml"
+        exit 1
+    fi
 
     # working_dirがサブディレクトリの場合、共通ファイルへのパスを調整
     local path_prefix=""
@@ -148,7 +167,7 @@ generate_epub() {
 
 run_all() {
     local mode="$1"
-    for repo in admin-text linux-text ossdb-text server-text; do
+    for repo in admin-text linux-text ossdb-text server-text server-text-ubuntu; do
         case "$mode" in
             --build-only) docker_build "$repo" ;;
             --pdf-only)   generate_pdf "$repo" ;;

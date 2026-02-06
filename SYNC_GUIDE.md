@@ -47,6 +47,48 @@
 
 ---
 
+## server-text のデュアルバリアント構造
+
+server-textは他のリポジトリと異なり、`main/`（AlmaLinux版）と`ubuntu/`（Ubuntu版）の2つのバリアントを持つ。
+
+### ディレクトリ構成
+
+```
+server-text/
+├── main/           # AlmaLinux版
+│   ├── Chapter*.md
+│   ├── config.yaml
+│   └── image/
+├── ubuntu/         # Ubuntu版
+│   ├── Chapter*.md
+│   ├── config.yaml
+│   └── image/
+├── template.tex    # 共通
+├── metadata.yaml   # 共通
+├── crossref.yaml   # 共通
+└── epub.css        # 共通
+```
+
+### バリアント間の同期
+
+両バリアントで**共通に更新すべき箇所**:
+- `Chapter00.md` の連絡先セクション（問い合わせURL、QRコード）
+- `image/Ch0/QR_toiawase.png` などの共通画像
+
+**バリアント固有の箇所**（同期不要）:
+- ディストリビューション名の記載
+- インストール手順・コマンド例
+- 執筆者（contributors）情報
+
+### ビルド確認
+
+```bash
+./build-check.sh server-text         # main（AlmaLinux）版
+./build-check.sh server-text-ubuntu  # ubuntu版
+```
+
+---
+
 ## カバー画像管理
 
 ### ファイル構成
@@ -176,12 +218,4 @@ diff -u ./tmp/default-latest.tex admin-text/template.tex | less
 - **2024-06-24**: `\pandocbounded`マクロ追加 (PR #9666) - 全template.texに定義追加
 - **2024年以前**: `\tightlist`マクロ - 既に反映済み
 
----
 
-# 変更履歴
-
-| 日付 | 内容 |
-|------|------|
-| 2026-02-05 | 初版作成 |
-| 2026-02-06 | 構成を「リポジトリ間同期」と「Pandoc upstream追従」に分離 |
-| 2026-02-06 | カバー画像管理セクション追加 |
