@@ -113,6 +113,12 @@ generate_pdf() {
     working_dir="${working_dir:-.}"
     template="${template:-template.tex}"
 
+    # config-pdf.yaml優先、なければconfig.yaml
+    local pdf_config="config.yaml"
+    if [[ -f "$repo_dir/$working_dir/config-pdf.yaml" ]]; then
+        pdf_config="config-pdf.yaml"
+    fi
+
     echo "========================================="
     echo "Generating PDF for $repo"
     echo "========================================="
@@ -130,7 +136,7 @@ generate_pdf() {
         -c "
             chapters=\$(ls -1 Chapter*.md | grep -v 'Chapter00.md' | sort -V | tr '\n' ' ' | sed 's/ \$//')
             pandoc Chapter00.md -o preface.tex
-            pandoc -d config.yaml --template $template -B preface.tex \${chapters} -o guide.pdf --verbose 2>&1 | grep -v '^  '
+            pandoc -d $pdf_config --template $template -B preface.tex \${chapters} -o guide.pdf --verbose 2>&1 | grep -v '^  '
         "
 
     # 生成されたファイルを出力ディレクトリにコピー
@@ -163,6 +169,14 @@ generate_epub() {
         path_prefix="../"
     fi
 
+    # config-epub.yaml優先、なければmetadata.yaml
+    local epub_config="metadata.yaml"
+    if [[ -f "$repo_dir/$working_dir/config-epub.yaml" ]]; then
+        epub_config="config-epub.yaml"
+    elif [[ -f "$repo_dir/${path_prefix}config-epub.yaml" ]]; then
+        epub_config="${path_prefix}config-epub.yaml"
+    fi
+
     echo "========================================="
     echo "Generating EPUB for $repo"
     echo "========================================="
@@ -182,7 +196,7 @@ generate_epub() {
             /usr/bin/awk 'BEGIN{go=0;}{ if (go==1){print;} else {if(\$0 ~ /^#/) { go=1;print;}}}' guide.md | \
                 pandoc -t epub3 -F pandoc-crossref -o guide.epub -N \
                 -M crossrefYaml=${path_prefix}crossref.yaml \
-                --metadata-file=${path_prefix}metadata.yaml \
+                --metadata-file=${path_prefix}$epub_config \
                 --epub-cover-image=$cover \
                 --css=${path_prefix}epub.css
         "
