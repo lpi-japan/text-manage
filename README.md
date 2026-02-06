@@ -16,14 +16,14 @@ AI Agentがワークスペース全体を参照できるため、「全リポジ
 
 ```bash
 # このリポジトリをclone
-git clone https://github.com/lpijapan/text-manage.git
+git clone https://github.com/lpi-japan/text-manage.git
 cd text-manage
 
 # 4つのテキストリポジトリをclone
-git clone https://github.com/lpijapan/admin-text.git
-git clone https://github.com/lpijapan/linux-text.git
-git clone https://github.com/lpijapan/ossdb-text.git
-git clone https://github.com/lpijapan/server-text.git
+git clone https://github.com/lpi-japan/admin-text.git
+git clone https://github.com/lpi-japan/linux-text.git
+git clone https://github.com/lpi-japan/ossdb-text.git
+git clone https://github.com/lpi-japan/server-text.git
 ```
 
 ## ファイル構成
