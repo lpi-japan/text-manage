@@ -21,13 +21,7 @@ RESULTS_DIR="$SCRIPT_DIR/tmp/results"
 
 # リポジトリ設定 (working_dir, template, repo_dir)
 # coverはpandoc.yamlから動的に取得
-declare -A REPO_CONFIGS=(
-    ["admin-text"]="working_dir=."
-    ["linux-text"]="working_dir=."
-    ["ossdb-text"]="working_dir=."
-    ["server-text"]="working_dir=main template=../template.tex"
-    ["server-text-ubuntu"]="working_dir=ubuntu template=../template.tex repo_dir=server-text"
-)
+# bash 3.2互換のため連想配列を使わずcase文で対応
 
 usage() {
     echo "Usage: $0 <repository> [--build-only|--pdf-only|--epub-only]"
@@ -45,11 +39,45 @@ usage() {
     exit 1
 }
 
+is_valid_repo() {
+    local repo="$1"
+    case "$repo" in
+        admin-text|linux-text|ossdb-text|server-text|server-text-ubuntu)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 get_config() {
     local repo="$1"
     local key="$2"
-    local config="${REPO_CONFIGS[$repo]}"
-    echo "$config" | tr ' ' '\n' | grep "^${key}=" | cut -d= -f2
+    
+    case "$repo" in
+        admin-text|linux-text|ossdb-text)
+            case "$key" in
+                working_dir) echo "." ;;
+                template) echo "template.tex" ;;
+                repo_dir) echo "$repo" ;;
+            esac
+            ;;
+        server-text)
+            case "$key" in
+                working_dir) echo "main" ;;
+                template) echo "../template.tex" ;;
+                repo_dir) echo "server-text" ;;
+            esac
+            ;;
+        server-text-ubuntu)
+            case "$key" in
+                working_dir) echo "ubuntu" ;;
+                template) echo "../template.tex" ;;
+                repo_dir) echo "server-text" ;;
+            esac
+            ;;
+    esac
 }
 
 # pandoc.yamlから--epub-cover-image=の値を抽出
@@ -191,7 +219,7 @@ if [[ "$REPO_NAME" == "--all" ]]; then
     exit 0
 fi
 
-if [[ ! -v "REPO_CONFIGS[$REPO_NAME]" ]]; then
+if ! is_valid_repo "$REPO_NAME"; then
     echo "Error: Unknown repository '$REPO_NAME'"
     usage
 fi
