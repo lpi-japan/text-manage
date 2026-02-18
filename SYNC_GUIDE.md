@@ -42,7 +42,7 @@
 
 ## 同期対象外
 
-- `config.yaml`, `metadata.yaml`, `crossref.yaml` - リポジトリ固有設定
+- `config-pdf.yaml`, `config-epub.yaml`, `crossref.yaml` - リポジトリ固有設定
 - `Chapter01.md` 以降 - 本文
 
 ---
@@ -57,14 +57,15 @@ server-textは他のリポジトリと異なり、`main/`（AlmaLinux版）と`u
 server-text/
 ├── main/           # AlmaLinux版
 │   ├── Chapter*.md
-│   ├── config.yaml
+│   ├── config-pdf.yaml
+│   ├── config-epub.yaml
 │   └── image/
 ├── ubuntu/         # Ubuntu版
 │   ├── Chapter*.md
-│   ├── config.yaml
+│   ├── config-pdf.yaml
+│   ├── config-epub.yaml
 │   └── image/
 ├── template.tex    # 共通
-├── metadata.yaml   # 共通
 ├── crossref.yaml   # 共通
 └── epub.css        # 共通
 ```
