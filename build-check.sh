@@ -26,7 +26,7 @@ RESULTS_DIR="$SCRIPT_DIR/tmp/results"
 usage() {
     echo "Usage: $0 <repository> [--build-only|--pdf-only|--epub-only]"
     echo ""
-    echo "Repositories: admin-text, linux-text, ossdb-text, server-text, server-text-ubuntu"
+    echo "Repositories: admin-text, linux-text, network-text, ossdb-text, server-text, server-text-ubuntu"
     echo ""
     echo "Options:"
     echo "  --build-only  Docker build only"
@@ -42,7 +42,7 @@ usage() {
 is_valid_repo() {
     local repo="$1"
     case "$repo" in
-        admin-text|linux-text|ossdb-text|server-text|server-text-ubuntu)
+        admin-text|linux-text|network-text|ossdb-text|server-text|server-text-ubuntu)
             return 0
             ;;
         *)
@@ -56,7 +56,7 @@ get_config() {
     local key="$2"
 
     case "$repo" in
-        admin-text|linux-text|ossdb-text)
+        admin-text|linux-text|network-text|ossdb-text)
             case "$key" in
                 working_dir) echo "." ;;
                 template) echo "template.tex" ;;
@@ -195,7 +195,7 @@ generate_epub() {
 
 run_all() {
     local mode="$1"
-    for repo in admin-text linux-text ossdb-text server-text server-text-ubuntu; do
+    for repo in admin-text linux-text network-text ossdb-text server-text server-text-ubuntu; do
         case "$mode" in
             --build-only) docker_build "$repo" ;;
             --pdf-only)   generate_pdf "$repo" ;;

@@ -4,7 +4,7 @@ LPI-Japan テキストリポジトリの統合管理ワークスペースです�
 
 ## 目的
 
-4つのテキストリポジトリ（admin-text, linux-text, ossdb-text, server-text）を同一ディレクトリに配置し、AI Agent（GitHub Copilot等）を活用して以下の管理作業をシンプルに行います：
+標準教科書リポジトリ（admin-text, linux-text, network-text, ossdb-text, server-text）を同一ディレクトリに配置し、AI Agent（GitHub Copilot等）を活用して以下の管理作業をシンプルに行います：
 
 - **リポジトリ間の同期**: ワークフロー、Dockerfile、テンプレートの統一
 - **一括確認・修正**: 複数リポジトリへの横断的な変更適用
@@ -19,9 +19,10 @@ AI Agentがワークスペース全体を参照できるため、「全リポジ
 git clone https://github.com/lpi-japan/text-manage.git
 cd text-manage
 
-# 4つのテキストリポジトリをclone
+# テキストリポジトリをclone
 git clone https://github.com/lpi-japan/admin-text.git
 git clone https://github.com/lpi-japan/linux-text.git
+git clone https://github.com/lpi-japan/network-text.git
 git clone https://github.com/lpi-japan/ossdb-text.git
 git clone https://github.com/lpi-japan/server-text.git
 ```
@@ -37,6 +38,7 @@ text-manage/
 ├── tmp/                # ビルド成果物・ログ（gitignore）
 ├── admin-text/         # 各テキストリポジトリ（個別git管理）
 ├── linux-text/
+├── network-text/
 ├── ossdb-text/
 └── server-text/
 ```

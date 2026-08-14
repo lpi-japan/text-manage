@@ -1,10 +1,10 @@
 # テキストリポジトリ管理ガイド
 
-4つのテキストリポジトリ（admin-text, linux-text, ossdb-text, server-text）の管理ガイドです。
+標準教科書リポジトリ（admin-text, linux-text, network-text, ossdb-text, server-text）の管理ガイドです。
 
 管理作業は以下の2つに大別されます：
 
-1. **リポジトリ間同期** - 4リポジトリ間で共通設定を揃える
+1. **リポジトリ間同期** - リポジトリ間で共通設定を揃える
 2. **Pandoc upstream追従** - Pandoc本体の更新にカスタムテンプレートを追随させる
 
 ---
@@ -13,7 +13,7 @@
 
 ## 同期対象ファイル
 
-以下のファイルは4リポジトリ間で**ロジックを統一**し、リポジトリ固有の値のみ異なるようにします。
+以下のファイルはリポジトリ間で**ロジックを統一**し、リポジトリ固有の値のみ異なるようにします。
 
 ### `.github/workflows/build-container.yaml`
 - **目的**: PandocコンテナイメージのビルドとGitHub Container Registryへのpush
@@ -90,6 +90,12 @@ server-text/
 
 ---
 
+## network-text の現状
+
+原稿はリポジトリ直下の `Chapter*.md`（linux-text / admin-text と同じ単一バリアント）。`main/` `ubuntu/` `main-en/` は持たない。ビルド用の `Dockerfile` / `template.tex` / `config-*.yaml` は未整備で、`.github/workflows/` だけ server-text からコピーされている。
+
+---
+
 ## カバー画像管理
 
 ### ファイル構成
@@ -135,6 +141,7 @@ DPIメタデータはPNG内に埋め込まなくてもよい（印刷時はAIフ
 ```bash
 # 例: Dockerfile比較
 diff admin-text/Dockerfile linux-text/Dockerfile
+diff admin-text/Dockerfile network-text/Dockerfile
 diff admin-text/Dockerfile ossdb-text/Dockerfile
 diff admin-text/Dockerfile server-text/Dockerfile
 ```
@@ -142,7 +149,7 @@ diff admin-text/Dockerfile server-text/Dockerfile
 ### 2. コミット履歴確認
 
 ```bash
-for repo in admin-text linux-text ossdb-text server-text; do
+for repo in admin-text linux-text network-text ossdb-text server-text; do
   echo "=== $repo ===" && git -C $repo log --oneline -10 -- .github/workflows/
 done
 ```
