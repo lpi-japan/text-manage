@@ -1,2 +1,10 @@
 # ビルド成果物・一時ファイル
 tmp/
+
+# 独立した教科書リポジトリ（submodule にせず配下に clone）
+# 検索・参照用の戻しは .ignore。教科書の増減時は両方を揃える。
+/admin-text/
+/linux-text/
+/network-text/
+/ossdb-text/
+/server-text/

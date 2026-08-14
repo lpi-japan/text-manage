@@ -27,6 +27,8 @@ git clone https://github.com/lpi-japan/ossdb-text.git
 git clone https://github.com/lpi-japan/server-text.git
 ```
 
+各教科書は submodule ではなく、配下に clone した独立リポジトリとして置く。text-manage 本体の git には出さない（`.gitignore`）。VS Code / ripgrep は `.gitignore` も読むため、同じパスを `.ignore` で `!` して検索・参照対象に戻す。教科書を足す・外すときは両方を揃える。
+
 ## ファイル構成
 
 ```

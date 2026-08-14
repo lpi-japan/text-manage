@@ -1,3 +1,8 @@
-# ビルド成果物はgitignoreで除外されているが、VSCode/ripgrepの検索には引っかかるよう unignore する。
-# 現状、tmp/ のみ gitignore しているため特に unignore すべきエントリはなし。
-# サブディレクトリに個別の .ignore が必要な場合はそこで管理する。
+# .gitignore されたパスを検索・参照に戻す（!）。
+# 教科書の増減時は .gitignore と揃える。
+
+!/admin-text/
+!/linux-text/
+!/network-text/
+!/ossdb-text/
+!/server-text/
