@@ -56,7 +56,15 @@ get_config() {
     local key="$2"
 
     case "$repo" in
-        admin-text|linux-text|network-text|ossdb-text)
+        admin-text|network-text)
+            case "$key" in
+                working_dir) echo "." ;;
+                template) echo "build/template.tex" ;;
+                repo_dir) echo "$repo" ;;
+                docker_context) echo "build" ;;
+            esac
+            ;;
+        linux-text|ossdb-text)
             case "$key" in
                 working_dir) echo "." ;;
                 template) echo "template.tex" ;;
@@ -97,7 +105,10 @@ docker_build() {
     echo "========================================="
 
     cd "$repo_dir"
-    docker build -t "${repo_actual}-test" .
+    local ctx
+    ctx="$(get_config "$repo" "docker_context")"
+    ctx="${ctx:-.}"
+    docker build -t "${repo_actual}-test" -f "${ctx}/Dockerfile" "${ctx}"
 
     echo "✓ Docker build successful: ${repo_actual}-test"
 }

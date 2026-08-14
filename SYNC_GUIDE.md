@@ -29,11 +29,13 @@
 - **目的**: Pandoc実行環境のコンテナイメージ定義
 - **統一**: ベースイメージ、共通パッケージ、フォント設定
 - **固有**: リポジトリ特有の追加パッケージ（例: ossdb-textのinkscape）
+- **配置**: admin-text / network-text は `build/Dockerfile`。他はリポジトリ直下
 
 ### `template.tex`
 - **目的**: PDF生成用LaTeXテンプレート
 - **統一**: LaTeXマクロ定義、パッケージ設定、共通メタ情報（Copyright等）
 - **固有**: 表紙画像、書籍タイトル
+- **配置**: admin-text / network-text は `build/template.tex`。他はリポジトリ直下（server-text は共有ファイルとして直下）
 
 ### `Chapter00.md`
 - **目的**: 前書き・目次前ページ
@@ -92,7 +94,7 @@ server-text/
 
 ## network-text の現状
 
-原稿はリポジトリ直下の `Chapter*.md`（linux-text / admin-text と同じ単一バリアント）。`main/` `ubuntu/` `main-en/` は持たない。メタデータとテンプレートは server-text 由来、コンテナ／成果物名は admin-text 由来。バリアントを足すときは `pandoc.yaml` の `working-directory` を切り替える。
+原稿と `config-*.yaml` はリポジトリ直下（linux-text / admin-text と同じ単一バリアント）。ビルド一式は admin-text と同じく `build/`。`main/` `ubuntu/` `main-en/` は持たない。バリアントを足すときは `pandoc.yaml` の `working-directory` を切り替える。
 
 ---
 
@@ -126,6 +128,7 @@ DPIメタデータはPNG内に埋め込まなくてもよい（印刷時はAIフ
    ```latex
    \ThisCenterWallPaper{1}{image/Cover/電子版表紙_300dpi_2480x3508.png}
    ```
+   （admin-text / network-text ではこの定義は `build/template.tex`）
 
 2. **pandoc.yaml** (EPUB用)
    ```yaml
@@ -140,10 +143,10 @@ DPIメタデータはPNG内に埋め込まなくてもよい（印刷時はAIフ
 
 ```bash
 # 例: Dockerfile比較
-diff admin-text/Dockerfile linux-text/Dockerfile
-diff admin-text/Dockerfile network-text/Dockerfile
-diff admin-text/Dockerfile ossdb-text/Dockerfile
-diff admin-text/Dockerfile server-text/Dockerfile
+diff admin-text/build/Dockerfile linux-text/Dockerfile
+diff admin-text/build/Dockerfile network-text/build/Dockerfile
+diff admin-text/build/Dockerfile ossdb-text/Dockerfile
+diff admin-text/build/Dockerfile server-text/Dockerfile
 ```
 
 ### 2. コミット履歴確認
@@ -216,7 +219,7 @@ curl -s "https://api.github.com/repos/jgm/pandoc/commits?path=data/templates/def
 ```bash
 # 最新テンプレートを取得して比較
 docker run --rm pandoc/extra:edge-ubuntu pandoc -D latex > ./tmp/default-latest.tex
-diff -u ./tmp/default-latest.tex admin-text/template.tex | less
+diff -u ./tmp/default-latest.tex admin-text/build/template.tex | less
 
 # 必要部分を手動でコピー（自動適用は危険）
 ```
