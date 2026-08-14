@@ -92,7 +92,7 @@ server-text/
 
 ## network-text の現状
 
-原稿はリポジトリ直下の `Chapter*.md`（linux-text / admin-text と同じ単一バリアント）。`main/` `ubuntu/` `main-en/` は持たない。ビルド用の `Dockerfile` / `template.tex` / `config-*.yaml` は未整備で、`.github/workflows/` だけ server-text からコピーされている。
+原稿はリポジトリ直下の `Chapter*.md`（linux-text / admin-text と同じ単一バリアント）。`main/` `ubuntu/` `main-en/` は持たない。メタデータとテンプレートは server-text 由来、コンテナ／成果物名は admin-text 由来。バリアントを足すときは `pandoc.yaml` の `working-directory` を切り替える。
 
 ---
 
