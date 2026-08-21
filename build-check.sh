@@ -26,7 +26,7 @@ RESULTS_DIR="$SCRIPT_DIR/tmp/results"
 usage() {
     echo "Usage: $0 <repository> [--build-only|--pdf-only|--epub-only]"
     echo ""
-    echo "Repositories: admin-text, linux-text, network-text, ossdb-text, server-text, server-text-ubuntu"
+    echo "Repositories: admin-text, linux-text, network-text, ossdb-text, server-text, server-text-ubuntu, server-text-en"
     echo ""
     echo "Options:"
     echo "  --build-only  Docker build only"
@@ -42,7 +42,7 @@ usage() {
 is_valid_repo() {
     local repo="$1"
     case "$repo" in
-        admin-text|linux-text|network-text|ossdb-text|server-text|server-text-ubuntu)
+        admin-text|linux-text|network-text|ossdb-text|server-text|server-text-ubuntu|server-text-en)
             return 0
             ;;
         *)
@@ -82,6 +82,13 @@ get_config() {
             case "$key" in
                 working_dir) echo "ubuntu" ;;
                 template) echo "../template.tex" ;;
+                repo_dir) echo "server-text" ;;
+            esac
+            ;;
+        server-text-en)
+            case "$key" in
+                working_dir) echo "main-en" ;;
+                template) echo "../template-en.tex" ;;
                 repo_dir) echo "server-text" ;;
             esac
             ;;
@@ -174,6 +181,12 @@ generate_epub() {
         path_prefix="../"
     fi
 
+    # Determine crossref file based on repo
+    local crossref_file="${path_prefix}crossref.yaml"
+    if [[ "$repo" == "server-text-en" ]]; then
+        crossref_file="${path_prefix}crossref-en.yaml"
+    fi
+
     echo "========================================="
     echo "Generating EPUB for $repo"
     echo "========================================="
@@ -183,22 +196,28 @@ generate_epub() {
     local output_dir="$RESULTS_DIR/$repo"
     mkdir -p "$output_dir"
 
+    # cat 結合だと章見出しが本文化するため、公式ワークフロー(73924ac)と同じく
+    # 章ごとに前処理して複数入力で pandoc に渡す
     docker run --rm \
         -v "$(pwd):/data" \
         -w "/data/$working_dir" \
         --entrypoint /bin/sh \
         pandoc/core:3.1.1.0 \
         -c "
-            cat \$(ls -1 Chapter*.md | sort -V | tr '\n' ' ' | sed 's/ \$//') | sed 's/^####.*/#& {-}/' > guide.md
-            /usr/bin/awk 'BEGIN{go=0;}{ if (go==1){print;} else {if(\$0 ~ /^#/) { go=1;print;}}}' guide.md | \
-                pandoc -t epub3 -F pandoc-crossref -o guide.epub -N \
-                -M crossrefYaml=${path_prefix}crossref.yaml \
-                --metadata-file=config-epub.yaml \\
+            mkdir -p .epub-build && rm -rf .epub-build/*
+            for f in \$(ls -1 Chapter*.md | sort -V); do
+                sed 's/^####.*/#& {-}/' \"\$f\" > \".epub-build/\$f\"
+            done
+            chapters=\$(ls -1 .epub-build/Chapter*.md | sort -V | tr '\n' ' ' | sed 's/ \$//')
+            pandoc \$chapters -t epub3 -F pandoc-crossref -o guide.epub -N \
+                -M crossrefYaml=$crossref_file \
+                --metadata-file=config-epub.yaml \
                 --epub-cover-image=$cover \
                 --css=${path_prefix}epub.css
         "
 
     cp "$repo_dir/$working_dir/guide.epub" "$output_dir/" 2>/dev/null || true
+    rm -rf "$repo_dir/$working_dir/.epub-build"
     rm -f "$repo_dir/$working_dir/guide.md" "$repo_dir/$working_dir/guide.epub"
 
     echo "✓ EPUB generated: $output_dir/guide.epub"
@@ -206,7 +225,7 @@ generate_epub() {
 
 run_all() {
     local mode="$1"
-    for repo in admin-text linux-text network-text ossdb-text server-text server-text-ubuntu; do
+    for repo in admin-text linux-text network-text ossdb-text server-text server-text-ubuntu server-text-en; do
         case "$mode" in
             --build-only) docker_build "$repo" ;;
             --pdf-only)   generate_pdf "$repo" ;;
