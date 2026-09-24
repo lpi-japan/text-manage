@@ -78,31 +78,6 @@ server-text/
 - `Chapter00.md` の連絡先セクション（問い合わせURL、QRコード）
 - `image/Ch0/QR_toiawase.png` などの共通画像
 
----
-
-## 前書き QR コード PNG（正規ルール）
-
-**2026-09 以降、QR 画像は [qr-gen/](qr-gen/) の Docker レシピ v1 で生成したものだけを正とする。**  
-旧手順（手作業・370px 固定・`npx qrcode` 等）で作った PNG は置き換え済みとみなす。
-
-- レシピ・パラメータ: [qr-gen/RECIPE.md](qr-gen/RECIPE.md)
-- 一括再生成: `cd qr-gen && ./regenerate-all.sh`
-- 出力ピクセル数は URL 長に依存（固定 px 規定なし）。Markdown は `{width=25%}` のまま。
-- 同一 URL のファイルは **バイト同一**になるよう `regenerate-all.sh` で配布する（例: `QR_toiawase.png` を全リポジトリで同期）。
-- 配布中 PDF/EPUB は版リリースまで変わらない。PNG 更新は原稿更新と一緒に main へ入れ、次回ビルドで反映する。
-
-**共通 QR（URL が同じもの）**
-
-| ファイル名 | URL（Chapter00 の alt テキスト） |
-|------------|----------------------------------|
-| `QR_toiawase.png` | `https://lpij.tayori.com/f/textbookinfo/` |
-| `QR_measures.png` | `https://linuc.org/measures/` |
-| `QR_textbook.png` | `https://linuc.org/measures/textbook/` |
-| `QRaboutLinuC.png` | `https://linuc.org/about/01.html` |
-
-**教科書別**（`QRadmin.png` / `QRlinux.png` / `QRnetwork.png` / `QRserver.png`）は各リポジトリの `linuc.org/textbooks/...` URL に対応。  
-`linux-text` の `image/Ch12/QRuserdir.png` のみ本文 QR（`regenerate-all.sh` に含む）。
-
 **バリアント固有の箇所**（同期不要）:
 - ディストリビューション名の記載
 - インストール手順・コマンド例
@@ -114,6 +89,23 @@ server-text/
 ./build-check.sh server-text         # main（AlmaLinux）版
 ./build-check.sh server-text-ubuntu  # ubuntu版
 ```
+
+---
+
+## 前書き QR コード PNG
+
+生成は [qr-gen/](qr-gen/) の Docker（レシピ v1）。**1 ファイルずつ**、原稿の `![URL](path/to/QR….png)` から URL と出力パスを取って実行する（台帳は原稿側のみ）。
+
+```bash
+cd text-manage/qr-gen
+docker build -t lpi-textbook-qr:v1 .
+docker run --rm -v "$(cd .. && pwd):/work" -w /work lpi-textbook-qr:v1 \
+  '（alt の URL）' '（リポジトリ相対の PNG パス）'
+```
+
+詳細は [qr-gen/RECIPE.md](qr-gen/RECIPE.md)。出力ピクセル数は URL 長に依存する。Markdown の `{width=25%}` はそのまま。
+
+複数リポジトリに同じ URL の QR があるとき（例: `QR_toiawase.png`）は、生成した PNG を **手動でコピー**してバイト一致させる。配布中 PDF/EPUB は次回ビルド・リリースまで変わらない。
 
 ---
 
