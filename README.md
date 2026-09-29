@@ -54,7 +54,7 @@ text-manage/
 ./build-check.sh --all         # 全リポジトリ確認
 ```
 
-出力: `./tmp/results/<リポジトリ名>/guide.pdf`
+出力: `./tmp/results/<リポジトリ名>/`（各教科書の `tmp/*text_*` 成果物をコピー）
 
 ### 詳細ガイド
 

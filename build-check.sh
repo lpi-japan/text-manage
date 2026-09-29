@@ -1,269 +1,178 @@
-#!/bin/bash
-# テキストリポジトリのDockerビルドとPDF/EPUB生成を確認するスクリプト
+#!/usr/bin/env bash
+# テキストリポジトリの Docker ビルドと PDF/EPUB 生成を確認する（build/*.sh 新系統）。
 #
 # 使用方法:
 #   ./build-check.sh <リポジトリ名> [--build-only|--pdf-only|--epub-only]
-#
-# 例:
-#   ./build-check.sh linux-text               # フルチェック（Docker build + PDF）
-#   ./build-check.sh admin-text --build-only  # Dockerビルドのみ
-#   ./build-check.sh server-text --pdf-only   # PDF生成のみ（既存イメージ使用）
+#   ./build-check.sh --all [--build-only|--pdf-only|--epub-only]
 #
 # 出力先: ./tmp/results/<リポジトリ名>/
-# クリーンアップ: rm -rf ./tmp/results
 
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_NAME="${1:-}"
 MODE="${2:-full}"
 RESULTS_DIR="$SCRIPT_DIR/tmp/results"
 
-# リポジトリ設定 (working_dir, template, repo_dir)
-# coverはpandoc.yamlから動的に取得
-# bash 3.2互換のため連想配列を使わずcase文で対応
-
 usage() {
-    echo "Usage: $0 <repository> [--build-only|--pdf-only|--epub-only]"
-    echo ""
-    echo "Repositories: admin-text, linux-text, network-text, ossdb-text, server-text, server-text-ubuntu, server-text-en"
-    echo ""
-    echo "Options:"
-    echo "  --build-only  Docker build only"
-    echo "  --pdf-only    PDF generation only (uses existing image)"
-    echo "  --epub-only   EPUB generation only"
-    echo "  --all         Run for all repositories"
-    echo ""
-    echo "Output: $RESULTS_DIR/<repository>/guide.pdf"
-    echo "Clean:  rm -rf $RESULTS_DIR"
-    exit 1
+  echo "Usage: $0 <repository> [--build-only|--pdf-only|--epub-only]"
+  echo "       $0 --all [--build-only|--pdf-only|--epub-only]"
+  echo ""
+  echo "Repositories:"
+  echo "  admin-text, linux-text, network-text, ossdb-text"
+  echo "  server-text, server-text-ubuntu, server-text-en"
+  echo "  ossdb-text-en"
+  echo ""
+  echo "Output: $RESULTS_DIR/<repository>/ (tmp/*text_* 成果物をコピー)"
+  exit 1
 }
 
 is_valid_repo() {
-    local repo="$1"
-    case "$repo" in
-        admin-text|linux-text|network-text|ossdb-text|server-text|server-text-ubuntu|server-text-en)
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
+  case "$1" in
+    admin-text|linux-text|network-text|ossdb-text|ossdb-text-en|server-text|server-text-ubuntu|server-text-en)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
-get_config() {
-    local repo="$1"
-    local key="$2"
-
-    case "$repo" in
-        admin-text|network-text)
-            case "$key" in
-                working_dir) echo "." ;;
-                template) echo "build/template.tex" ;;
-                repo_dir) echo "$repo" ;;
-                docker_context) echo "build" ;;
-            esac
-            ;;
-        linux-text|ossdb-text)
-            case "$key" in
-                working_dir) echo "." ;;
-                template) echo "template.tex" ;;
-                repo_dir) echo "$repo" ;;
-            esac
-            ;;
-        server-text)
-            case "$key" in
-                working_dir) echo "main" ;;
-                template) echo "../template.tex" ;;
-                repo_dir) echo "server-text" ;;
-            esac
-            ;;
-        server-text-ubuntu)
-            case "$key" in
-                working_dir) echo "ubuntu" ;;
-                template) echo "../template.tex" ;;
-                repo_dir) echo "server-text" ;;
-            esac
-            ;;
-        server-text-en)
-            case "$key" in
-                working_dir) echo "main-en" ;;
-                template) echo "../template-en.tex" ;;
-                repo_dir) echo "server-text" ;;
-            esac
-            ;;
-    esac
+actual_repo_dir_for() {
+  case "$1" in
+    server-text|server-text-ubuntu|server-text-en) echo "server-text" ;;
+    ossdb-text-en) echo "ossdb-text" ;;
+    *) echo "$1" ;;
+  esac
 }
 
-# pandoc.yamlから--epub-cover-image=の値を抽出
-get_cover_from_workflow() {
-    local repo_dir="$1"
-    grep -oP '(?<=--epub-cover-image=)[^ ]+' "$repo_dir/.github/workflows/pandoc.yaml" | head -1
+image_tag_for() {
+  echo "$(actual_repo_dir_for "$1")-test"
 }
 
 docker_build() {
-    local repo="$1"
-    local repo_actual=$(get_config "$repo" "repo_dir")
-    repo_actual="${repo_actual:-$repo}"
-    local repo_dir="$SCRIPT_DIR/$repo_actual"
+  local repo="$1"
+  local repo_actual
+  repo_actual="$(actual_repo_dir_for "$repo")"
+  local repo_dir="$SCRIPT_DIR/$repo_actual"
+  local tag
+  tag="$(image_tag_for "$repo")"
 
-    echo "========================================="
-    echo "Building Docker image for $repo_actual"
-    echo "========================================="
+  echo "========================================="
+  echo "Building Docker image: $tag (context build/)"
+  echo "========================================="
 
-    cd "$repo_dir"
-    local ctx
-    ctx="$(get_config "$repo" "docker_context")"
-    ctx="${ctx:-.}"
-    docker build -t "${repo_actual}-test" -f "${ctx}/Dockerfile" "${ctx}"
-
-    echo "✓ Docker build successful: ${repo_actual}-test"
+  docker build -t "$tag" -f "$repo_dir/build/Dockerfile" "$repo_dir/build"
+  echo "✓ Docker build successful: $tag"
 }
 
-generate_pdf() {
-    local repo="$1"
-    local repo_actual=$(get_config "$repo" "repo_dir")
-    repo_actual="${repo_actual:-$repo}"
-    local repo_dir="$SCRIPT_DIR/$repo_actual"
-    local working_dir=$(get_config "$repo" "working_dir")
-    local template=$(get_config "$repo" "template")
+run_pdf_epub() {
+  local repo="$1"
+  local do_pdf="$2"
+  local do_epub="$3"
+  local repo_actual
+  repo_actual="$(actual_repo_dir_for "$repo")"
+  local repo_dir="$SCRIPT_DIR/$repo_actual"
+  local tag
+  tag="$(image_tag_for "$repo")"
+  local output_dir="$RESULTS_DIR/$repo"
 
-    working_dir="${working_dir:-.}"
-    template="${template:-template.tex}"
+  mkdir -p "$output_dir"
+  export TEXT_IMAGE="$tag"
 
-    echo "========================================="
-    echo "Generating PDF for $repo"
-    echo "========================================="
+  cd "$repo_dir"
+  chmod +x build/build-pdf.sh build/build-epub.sh build/with-build-image.sh 2>/dev/null || true
 
-    cd "$repo_dir"
+  case "$repo" in
+    admin-text|linux-text|network-text|ossdb-text)
+      if [[ "$do_pdf" == "1" ]]; then
+        ./build/build-pdf.sh all
+      fi
+      if [[ "$do_epub" == "1" ]]; then
+        ./build/build-epub.sh
+      fi
+      ;;
+    ossdb-text-en)
+      if [[ "$do_pdf" == "1" ]]; then
+        ./build/build-pdf.sh all en
+      fi
+      if [[ "$do_epub" == "1" ]]; then
+        ./build/build-epub.sh en
+      fi
+      ;;
+    server-text)
+      if [[ "$do_pdf" == "1" ]]; then
+        ./build/build-pdf.sh all main
+      fi
+      if [[ "$do_epub" == "1" ]]; then
+        ./build/build-epub.sh main
+      fi
+      ;;
+    server-text-ubuntu)
+      if [[ "$do_pdf" == "1" ]]; then
+        ./build/build-pdf.sh all ubuntu
+      fi
+      if [[ "$do_epub" == "1" ]]; then
+        ./build/build-epub.sh ubuntu
+      fi
+      ;;
+    server-text-en)
+      if [[ "$do_pdf" == "1" ]]; then
+        ./build/build-pdf.sh all main-en
+      fi
+      if [[ "$do_epub" == "1" ]]; then
+        ./build/build-epub.sh main-en
+      fi
+      ;;
+  esac
 
-    local output_dir="$RESULTS_DIR/$repo"
-    mkdir -p "$output_dir"
+  shopt -s nullglob
+  for f in tmp/*; do
+    case "$f" in
+      tmp/.*) continue ;;
+      tmp/*text_*|tmp/*text_*.*)
+        cp -a "$f" "$output_dir/"
+        ;;
+    esac
+  done
+  shopt -u nullglob
 
-    docker run --rm \
-        -v "$(pwd):/data" \
-        -w "/data/$working_dir" \
-        --entrypoint /bin/sh \
-        "${repo_actual}-test" \
-        -c "
-            chapters=\$(ls -1 Chapter*.md | grep -v 'Chapter00.md' | sort -V | tr '\n' ' ' | sed 's/ \$//')
-            pandoc Chapter00.md -o preface.tex
-            pandoc -d config-pdf.yaml --template $template -B preface.tex \${chapters} -o guide.pdf --verbose 2>&1 | grep -v '^  '
-        "
-
-    # 生成されたファイルを出力ディレクトリにコピー
-    cp "$repo_dir/$working_dir/guide.pdf" "$output_dir/"
-
-    # リポジトリ内の一時ファイルを削除
-    rm -f "$repo_dir/$working_dir/preface.tex" "$repo_dir/$working_dir/guide.pdf"
-
-    echo "✓ PDF generated: $output_dir/guide.pdf"
+  echo "✓ Artifacts copied to $output_dir/"
+  ls -lh "$output_dir" 2>/dev/null || true
 }
 
-generate_epub() {
-    local repo="$1"
-    local repo_actual=$(get_config "$repo" "repo_dir")
-    repo_actual="${repo_actual:-$repo}"
-    local repo_dir="$SCRIPT_DIR/$repo_actual"
-    local working_dir=$(get_config "$repo" "working_dir")
-    local cover=$(get_cover_from_workflow "$repo_dir")
+process_repo() {
+  local repo="$1"
+  local mode="$2"
 
-    working_dir="${working_dir:-.}"
-
-    if [[ -z "$cover" ]]; then
-        echo "Error: Could not find cover image in $repo_dir/.github/workflows/pandoc.yaml"
-        exit 1
-    fi
-
-    # working_dirがサブディレクトリの場合、共通ファイルへのパスを調整
-    local path_prefix=""
-    if [[ "$working_dir" != "." ]]; then
-        path_prefix="../"
-    fi
-
-    # Determine crossref file based on repo
-    local crossref_file="${path_prefix}crossref.yaml"
-    if [[ "$repo" == "server-text-en" ]]; then
-        crossref_file="${path_prefix}crossref-en.yaml"
-    fi
-
-    echo "========================================="
-    echo "Generating EPUB for $repo"
-    echo "========================================="
-
-    cd "$repo_dir"
-
-    local output_dir="$RESULTS_DIR/$repo"
-    mkdir -p "$output_dir"
-
-    # cat 結合だと章見出しが本文化するため、公式ワークフロー(73924ac)と同じく
-    # 章ごとに前処理して複数入力で pandoc に渡す
-    docker run --rm \
-        -v "$(pwd):/data" \
-        -w "/data/$working_dir" \
-        --entrypoint /bin/sh \
-        pandoc/core:3.1.1.0 \
-        -c "
-            mkdir -p .epub-build && rm -rf .epub-build/*
-            for f in \$(ls -1 Chapter*.md | sort -V); do
-                sed 's/^####.*/#& {-}/' \"\$f\" > \".epub-build/\$f\"
-            done
-            chapters=\$(ls -1 .epub-build/Chapter*.md | sort -V | tr '\n' ' ' | sed 's/ \$//')
-            pandoc \$chapters -t epub3 -F pandoc-crossref -o guide.epub -N \
-                -M crossrefYaml=$crossref_file \
-                --metadata-file=config-epub.yaml \
-                --epub-cover-image=$cover \
-                --css=${path_prefix}epub.css
-        "
-
-    cp "$repo_dir/$working_dir/guide.epub" "$output_dir/" 2>/dev/null || true
-    rm -rf "$repo_dir/$working_dir/.epub-build"
-    rm -f "$repo_dir/$working_dir/guide.md" "$repo_dir/$working_dir/guide.epub"
-
-    echo "✓ EPUB generated: $output_dir/guide.epub"
+  case "$mode" in
+    --build-only) docker_build "$repo" ;;
+    --pdf-only)   docker_build "$repo"; run_pdf_epub "$repo" 1 0 ;;
+    --epub-only)  docker_build "$repo"; run_pdf_epub "$repo" 0 1 ;;
+    *)
+      docker_build "$repo"
+      run_pdf_epub "$repo" 1 1
+      ;;
+  esac
 }
 
-run_all() {
-    local mode="$1"
-    for repo in admin-text linux-text network-text ossdb-text server-text server-text-ubuntu server-text-en; do
-        case "$mode" in
-            --build-only) docker_build "$repo" ;;
-            --pdf-only)   generate_pdf "$repo" ;;
-            --epub-only)  generate_epub "$repo" ;;
-            *)
-                docker_build "$repo"
-                generate_pdf "$repo"
-                generate_epub "$repo"
-                ;;
-        esac
-    done
-}
-
-# メイン処理
 if [[ -z "$REPO_NAME" ]]; then
-    usage
+  usage
 fi
 
 if [[ "$REPO_NAME" == "--all" ]]; then
-    run_all "$MODE"
-    exit 0
+  for repo in admin-text linux-text network-text ossdb-text ossdb-text-en server-text server-text-ubuntu server-text-en; do
+    process_repo "$repo" "$MODE"
+  done
+  exit 0
 fi
 
 if ! is_valid_repo "$REPO_NAME"; then
-    echo "Error: Unknown repository '$REPO_NAME'"
-    usage
+  echo "Error: Unknown repository '$REPO_NAME'" >&2
+  usage
 fi
 
-case "$MODE" in
-    --build-only) docker_build "$REPO_NAME" ;;
-    --pdf-only)   generate_pdf "$REPO_NAME" ;;
-    --epub-only)  generate_epub "$REPO_NAME" ;;
-    *)
-        docker_build "$REPO_NAME"
-        generate_pdf "$REPO_NAME"
-        generate_epub "$REPO_NAME"
-        ;;
-esac
+process_repo "$REPO_NAME" "$MODE"
 
 echo ""
 echo "========================================="
