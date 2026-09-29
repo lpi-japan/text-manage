@@ -111,7 +111,7 @@ docker run --rm -v "$(cd .. && pwd):/work" -w /work lpi-textbook-qr:v1 \
 
 ## network-text の現状
 
-原稿と `config-*.yaml` はリポジトリ直下（linux-text / admin-text と同じ単一バリアント）。ビルド一式は admin-text と同じく `build/`。`main/` `ubuntu/` `main-en/` は持たない。バリアントを足すときは `pandoc.yaml` の `working-directory` を切り替える。
+原稿と `config-*.yaml` はリポジトリ直下（linux-text / admin-text と同じ単一 edition）。ビルド一式は admin-text と同じく `build/`。`main/` `ubuntu/` `main-en/` は持たない。CI は全教科書共通で `root.yaml` の paths-filter（単一 edition は detect → image → pandoc、複数 edition は server-text の動的 matrix）。バリアントを足すときは `pandoc.yaml` の `working-directory` を切り替える。
 
 ---
 
